@@ -40,6 +40,26 @@ _gssh() {
 compdef _gssh gssh
 `
 
+// bashCompletion is self-contained rather than cobra's generated script, which
+// needs the bash-completion package (_get_comp_words_by_ref). macOS and minimal
+// servers do not have it, and the script then fails silently. Bash uses a
+// completion function's COMPREPLY as given, so pinyin matches survive here too.
+// Written for bash 3.2, which is what macOS still ships.
+const bashCompletion = `_gssh_complete() {
+  local line out
+  COMPREPLY=()
+  out=$("${COMP_WORDS[0]}" __complete "${COMP_WORDS[@]:1:COMP_CWORD}" 2>/dev/null) || return 0
+  # IFS is changed only after the call: in bash 3.2 a non-default IFS makes the
+  # quoted array slice above collapse into a single argument.
+  local IFS=$'\n'
+  for line in $out; do
+    [[ -z $line || $line == :* ]] && continue
+    COMPREPLY+=("${line%%$'\t'*}")
+  done
+}
+complete -F _gssh_complete gssh
+`
+
 var completionCmd = &cobra.Command{
 	Use:   "completion [zsh|bash|fish]",
 	Short: "Print the shell completion script",
@@ -58,7 +78,8 @@ Then "gssh v<TAB>" completes host names, and pinyin works too: "gssh myjx<TAB>".
 		out := cmd.OutOrStdout()
 		switch shell {
 		case "bash":
-			return root.GenBashCompletionV2(out, true)
+			_, err := fmt.Fprint(out, bashCompletion)
+			return err
 		case "fish":
 			return root.GenFishCompletion(out, true)
 		}

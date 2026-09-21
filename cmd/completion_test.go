@@ -80,3 +80,20 @@ func TestCompletionScriptUsesCompaddU(t *testing.T) {
 		t.Error("cobra's own compdef should have been removed")
 	}
 }
+
+// cobra's bash script needs the bash-completion package and fails silently
+// without it (macOS, minimal servers); ours must stand alone.
+func TestBashCompletionIsSelfContained(t *testing.T) {
+	var sb strings.Builder
+	completionCmd.SetOut(&sb)
+	if err := completionCmd.RunE(completionCmd, []string{"bash"}); err != nil {
+		t.Fatal(err)
+	}
+	script := sb.String()
+	if strings.Contains(script, "_get_comp_words_by_ref") || strings.Contains(script, "_init_completion") {
+		t.Error("bash script depends on the bash-completion package")
+	}
+	if !strings.Contains(script, "complete -F _gssh_complete gssh") {
+		t.Error("bash script does not register a completion function")
+	}
+}

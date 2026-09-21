@@ -96,23 +96,41 @@ install -m 0755 "$tmp/$BIN" "$INSTALL_DIR/$BIN" 2>/dev/null \
 
 info "installed $INSTALL_DIR/$BIN"
 
-# --- PATH hint ----------------------------------------------------------
-case ":$PATH:" in
-  *":$INSTALL_DIR:"*) ;;
-  *)
-    printf '\n  %s is not on your PATH. Add:\n\n    export PATH="%s:$PATH"\n\n' \
-      "$INSTALL_DIR" "$INSTALL_DIR"
-    ;;
+# --- shell setup ------------------------------------------------------
+# One command should leave gssh fully working, so the installer adds a small,
+# marked block to the user's shell rc: PATH (if needed) and tab completion.
+# It is idempotent, prints what it did, and GSSH_NO_MODIFY_RC=1 skips it.
+shell_name=$(basename "${SHELL:-sh}")
+case "$shell_name" in
+  zsh)  rc="$HOME/.zshrc" ;;
+  bash) rc="$HOME/.bashrc" ;;
+  *)    rc="" ;;
 esac
 
-# Tab completion is opt-in: an installer piped into sh should not edit rc files.
-case "${SHELL:-}" in
-  */zsh)
-    if ! grep -qs 'gssh completion' "$HOME/.zshrc"; then
-      printf '\n  tab completion (gssh v<TAB> -> gssh vast.ai...):\n\n'
-      printf "    echo 'source <(gssh completion zsh)' >> ~/.zshrc && exec zsh\n"
+if [ "${GSSH_NO_MODIFY_RC:-0}" = "1" ] || [ -z "$rc" ]; then
+  case ":$PATH:" in
+    *":$INSTALL_DIR:"*) ;;
+    *) printf '\n  add to your PATH:  export PATH="%s:$PATH"\n' "$INSTALL_DIR" ;;
+  esac
+elif grep -qs '>>> gssh >>>' "$rc"; then
+  info "shell already set up ($rc)"
+else
+  {
+    printf '\n# >>> gssh >>>\n'
+    printf 'case ":$PATH:" in *":%s:"*) ;; *) export PATH="%s:$PATH" ;; esac\n' "$INSTALL_DIR" "$INSTALL_DIR"
+    # An older manual setup may already source the completion; do not do it twice.
+    if ! grep -qs 'gssh completion' "$rc"; then
+      if [ "$shell_name" = zsh ]; then
+        # compdef only exists after compinit; a bare .zshrc may never call it.
+        printf '(( $+functions[compdef] )) || { autoload -Uz compinit && compinit; }\n'
+      fi
+      # eval, not source <(...): bash 3.2 (macOS /bin/bash) silently ignores
+      # sourcing a process substitution.
+      printf 'command -v gssh >/dev/null && eval "$(gssh completion %s)"\n' "$shell_name"
     fi
-    ;;
-esac
+    printf '# <<< gssh <<<\n'
+  } >> "$rc"
+  info "set up PATH and tab completion in $rc"
+fi
 
-printf '\n  next: run `gssh`\n\n'
+printf '\n  done. open a new terminal and run: gssh\n\n'

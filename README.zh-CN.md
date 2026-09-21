@@ -27,8 +27,7 @@
 curl -fsSL https://raw.githubusercontent.com/clveryang/gssh/main/install.sh | sh
 ```
 
-支持 macOS / Linux，amd64 / arm64。装到 `~/.local/bin`，不需要 sudo，下载后校验 checksum。
-也可以 `go install github.com/clveryang/gssh@latest`。
+就这一行。装完开个新终端，敲 `gssh` 即可，Tab 补全也一并配好了。
 
 ## 用法
 
@@ -41,12 +40,7 @@ gssh list                # 列出全部
 gssh doctor              # 重名、失效密钥、没写备注的主机
 ```
 
-Tab 补全 —— `gssh v<TAB>` → `gssh vast.ai.5060`，`gssh myjx<TAB>` → `gssh 美亚镜像`：
-
-```sh
-echo 'source <(gssh completion zsh)' >> ~/.zshrc && exec zsh
-```
-
+Tab 补全主机名：`gssh v<TAB>` → `gssh vast.ai.5060`，`gssh myjx<TAB>` → `gssh 美亚镜像`。
 主机名和命令重名时（`ls`、`add`、`sync`…），用 `gssh -- ls` 连接。
 
 ## 配置

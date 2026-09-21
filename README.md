@@ -27,8 +27,7 @@ gssh adds notes, tags and a searchable picker on top of your `~/.ssh/config` —
 curl -fsSL https://raw.githubusercontent.com/clveryang/gssh/main/install.sh | sh
 ```
 
-macOS and Linux, amd64 and arm64. Installs to `~/.local/bin`, no sudo, checksum-verified.
-Or `go install github.com/clveryang/gssh@latest`.
+That's it — open a new terminal and run `gssh`. Tab completion is set up too.
 
 ## Usage
 
@@ -41,12 +40,7 @@ gssh list                # list them
 gssh doctor              # duplicates, dead keys, names without notes
 ```
 
-Tab completion — `gssh v<TAB>` → `gssh vast.ai.5060`, `gssh myjx<TAB>` → `gssh 美亚镜像`:
-
-```sh
-echo 'source <(gssh completion zsh)' >> ~/.zshrc && exec zsh
-```
-
+Tab completes hosts: `gssh v<TAB>` → `gssh vast.ai.5060`, `gssh myjx<TAB>` → `gssh 美亚镜像`.
 A host named like a command (`ls`, `add`, `sync`…) is reached with `gssh -- ls`.
 
 ## Config
