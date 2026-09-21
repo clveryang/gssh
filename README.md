@@ -1,6 +1,9 @@
 <div align="center">
 
-<img src="images/logo.png" alt="gssh" width="200">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="images/logo.png">
+  <img src="images/logo-light.png" alt="gssh" width="200">
+</picture>
 
 <h1>gssh</h1>
 
