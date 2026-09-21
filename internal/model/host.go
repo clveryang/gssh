@@ -1,6 +1,8 @@
 // Package model defines the data structures that make up a gssh configuration.
 package model
 
+import "strings"
+
 // Config is the root of ~/.config/gssh/hosts.yaml.
 type Config struct {
 	Defaults Options `yaml:"defaults,omitempty"`
@@ -28,6 +30,8 @@ type Host struct {
 	// Populated at load time, never serialised.
 	Group  string   `yaml:"-"`
 	Search []string `yaml:"-"` // lowercase haystacks: name, aliases, pinyin, host, note
+	// SSHName is what gssh passes to ssh; see config.assignSSHNames.
+	SSHName string `yaml:"-"`
 }
 
 // Options are the ssh_config keywords gssh knows how to render. A zero value
@@ -55,4 +59,27 @@ func (c *Config) AllHosts() []*Host {
 		out = append(out, g.Hosts...)
 	}
 	return append(out, c.Hosts...)
+}
+
+// SSHSafe reports whether ssh accepts s as a host argument. OpenSSH refuses
+// non-ASCII and shell metacharacters with "hostname contains invalid
+// characters" -- which rules out every Chinese host name.
+func SSHSafe(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if r <= ' ' || r > '~' || strings.ContainsRune("'`\"$\\;&<>|(){},", r) {
+			return false
+		}
+	}
+	return true
+}
+
+// Target is the name to hand to ssh for this host.
+func (h *Host) Target() string {
+	if h.SSHName != "" {
+		return h.SSHName
+	}
+	return h.Name
 }

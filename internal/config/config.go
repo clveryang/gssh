@@ -106,6 +106,65 @@ func index(c *model.Config) {
 	for _, h := range c.Hosts {
 		buildSearch(h)
 	}
+	assignSSHNames(c.AllHosts())
+}
+
+// assignSSHNames gives every host a name ssh will accept. Hosts whose name is
+// already safe keep it. Otherwise the first ASCII alias is used, then the
+// pinyin of the name (杭州备份机 -> hangzhoubeifenji), made unique against every
+// other name and alias. The result is written into the ssh_config fragment,
+// so `ssh hangzhoubeifenji` and `scp f hangzhoubeifenji:` work as well.
+func assignSSHNames(hosts []*model.Host) {
+	used := map[string]bool{}
+	for _, h := range hosts {
+		for _, n := range append([]string{h.Name}, h.Alias...) {
+			if model.SSHSafe(n) {
+				used[strings.ToLower(n)] = true
+			}
+		}
+	}
+	for _, h := range hosts {
+		if model.SSHSafe(h.Name) {
+			h.SSHName = h.Name
+			continue
+		}
+		h.SSHName = ""
+		for _, a := range h.Alias {
+			if model.SSHSafe(a) {
+				h.SSHName = a
+				break
+			}
+		}
+		if h.SSHName != "" {
+			continue
+		}
+		base := strings.ToLower(h.Pinyin)
+		if base == "" {
+			if k := pyin.Keys(h.Name); len(k) > 0 {
+				base = k[0]
+			}
+		}
+		base = asciiSlug(base)
+		if base == "" {
+			base = "host"
+		}
+		cand := base
+		for i := 2; used[cand]; i++ {
+			cand = fmt.Sprintf("%s-%d", base, i)
+		}
+		used[cand] = true
+		h.SSHName = cand
+	}
+}
+
+func asciiSlug(s string) string {
+	var b strings.Builder
+	for _, r := range strings.ToLower(s) {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '_' || r == '.' {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func buildSearch(h *model.Host) {

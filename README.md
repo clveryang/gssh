@@ -43,27 +43,65 @@ gssh list                # list them
 gssh doctor              # duplicates, dead keys, names without notes
 ```
 
-Tab completes hosts: `gssh v<TAB>` → `gssh vast.ai.5060`, `gssh myjx<TAB>` → `gssh 美亚镜像`.
+Tab completes hosts: `gssh we<TAB>` → `gssh web-01`, `gssh hzbfj<TAB>` → `gssh 杭州备份机`.
 A host named like a command (`ls`, `add`, `sync`…) is reached with `gssh -- ls`.
 
 ## Config
 
 `~/.config/gssh/hosts.yaml` — `gssh write` opens it with a commented example.
+Each host notes the `ssh` command it replaces.
 
 ```yaml
-defaults:
+defaults:                          # applies to every host that does not say otherwise
   identity_file: ~/.ssh/id_rsa
+  server_alive_interval: 30        # keep idle connections alive
 
-groups:
+hosts:
+  # ssh 0.0.0.0
+  - name: dev
+    host: 0.0.0.0
+
+  # ssh -i ~/.ssh/vps_ed25519 ubuntu@0.0.0.0
+  - name: vps
+    host: 0.0.0.0
+    user: ubuntu
+    identity_file: ~/.ssh/vps_ed25519
+    note: cloud vps
+
+  # ssh -p 2222 root@gpu.example.com
+  - name: gpu
+    host: gpu.example.com
+    port: 2222
+    user: root
+
+  # ssh -L 8888:localhost:8888 root@0.0.0.0    (jupyter on localhost:8888)
+  - name: notebook
+    host: 0.0.0.0
+    user: root
+    local_forward:
+      - 8888 localhost:8888
+
+  # ssh -J jump deploy@0.0.0.0               (only reachable through a bastion)
+  - name: jump
+    host: bastion.example.com
+    user: ops
+  - name: inner
+    host: 0.0.0.0
+    user: deploy
+    proxy_jump: jump
+
+groups:                            # a group's tags are inherited by its hosts
   - name: lab
-    tags: [gpu]              # inherited by every host in the group
+    tags: [gpu]
     hosts:
-      - name: 杭州备份机
-        host: 10.0.2.104
+      - name: 杭州备份机            # Chinese names work; find it with hzbfj
+        host: 0.0.0.0
         user: deploy
+        alias: [hz]                # gssh hz works too
         note: nightly snapshots
-        alias: [hz]
 ```
+
+Any other `ssh_config` keyword goes under `raw:`, e.g. `raw: {Compression: "yes"}`.
 
 ## How it works
 

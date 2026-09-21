@@ -43,27 +43,65 @@ gssh list                # 列出全部
 gssh doctor              # 重名、失效密钥、没写备注的主机
 ```
 
-Tab 补全主机名：`gssh v<TAB>` → `gssh vast.ai.5060`，`gssh myjx<TAB>` → `gssh 美亚镜像`。
+Tab 补全主机名：`gssh we<TAB>` → `gssh web-01`，`gssh hzbfj<TAB>` → `gssh 杭州备份机`。
 主机名和命令重名时（`ls`、`add`、`sync`…），用 `gssh -- ls` 连接。
 
 ## 配置
 
 `~/.config/gssh/hosts.yaml` —— `gssh write` 会打开一份带注释的示例。
+每台主机上方的注释是它所替代的 `ssh` 命令。
 
 ```yaml
-defaults:
+defaults:                          # 所有主机的默认值，主机自己写了就以主机为准
   identity_file: ~/.ssh/id_rsa
+  server_alive_interval: 30        # 空闲时保持连接不断
 
-groups:
+hosts:
+  # ssh 0.0.0.0
+  - name: dev
+    host: 0.0.0.0
+
+  # ssh -i ~/.ssh/vps_ed25519 ubuntu@0.0.0.0
+  - name: vps
+    host: 0.0.0.0
+    user: ubuntu
+    identity_file: ~/.ssh/vps_ed25519
+    note: 云服务器
+
+  # ssh -p 2222 root@gpu.example.com
+  - name: gpu
+    host: gpu.example.com
+    port: 2222
+    user: root
+
+  # ssh -L 8888:localhost:8888 root@0.0.0.0    （本地 localhost:8888 打开 jupyter）
+  - name: notebook
+    host: 0.0.0.0
+    user: root
+    local_forward:
+      - 8888 localhost:8888
+
+  # ssh -J jump deploy@0.0.0.0               （只能经跳板机访问的内网机器）
+  - name: jump
+    host: bastion.example.com
+    user: ops
+  - name: inner
+    host: 0.0.0.0
+    user: deploy
+    proxy_jump: jump
+
+groups:                            # 组的 tags 会被组内主机继承
   - name: 板卡
-    tags: [gpu]              # 组内主机都会继承
+    tags: [gpu]
     hosts:
-      - name: 杭州备份机
-        host: 10.0.2.104
+      - name: 杭州备份机            # 中文名没问题，输入 hzbfj 就能找到
+        host: 0.0.0.0
         user: deploy
+        alias: [hz]                # gssh hz 也能连
         note: 每日快照
-        alias: [hz]
 ```
+
+其他 `ssh_config` 关键字写在 `raw:` 下，例如 `raw: {Compression: "yes"}`。
 
 ## 原理
 

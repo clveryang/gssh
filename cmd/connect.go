@@ -54,20 +54,21 @@ func connect(h *model.Host, extra []string) error {
 	}
 	// Recorded before the exec, because after it there is no "after".
 	mru.Touch(h.Name)
-	return syscall.Exec(bin, append([]string{"ssh", h.Name}, extra...), os.Environ())
+	// h.Target, not h.Name: ssh rejects non-ASCII names outright.
+	return syscall.Exec(bin, append([]string{"ssh", h.Target()}, extra...), os.Environ())
 }
 
 // completeHosts powers shell completion of host names.
 //
 // Matches come in tiers and only the best non-empty tier is returned, because
 // the zsh script hands the result to compadd -U and does no filtering of its
-// own. Without tiers, `gssh v<TAB>` would offer every host containing a "v"
+// own. Without tiers, `gssh we<TAB>` would offer every host containing a "v"
 // instead of completing to the one host whose name starts with it.
 //
 //  1. name or alias starts with the input, case-sensitively
-//  2. the same, ignoring case                  v     -> vast.ai.5060
-//  3. pinyin of the name starts with it        myjx  -> 美亚镜像
-//  4. input appears anywhere (IP, note, tag)   10.11 -> 13, 14, ...
+//  2. the same, ignoring case                  v     -> web-01
+//  3. pinyin of the name starts with it        hzbfj  -> 杭州备份机
+//  4. input appears anywhere (IP, note, tag)   0.0.0 -> 42, 14, ...
 //
 // Tier 1 exists because compadd -U replaces the typed word with the common
 // prefix of the candidates: "Tenc" matching both Tencent and tencent would

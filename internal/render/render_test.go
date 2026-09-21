@@ -92,3 +92,16 @@ func TestEnsureIncludeEmptyFile(t *testing.T) {
 		t.Fatal("config should have been created")
 	}
 }
+
+// ssh never matches a non-ASCII Host pattern and refuses one as an argument,
+// so the block is keyed on the ASCII name gssh connects with.
+func TestFragmentNonASCIIHost(t *testing.T) {
+	h := &model.Host{Name: "杭州备份机", Host: "0.0.0.0", SSHName: "hangzhoubeifenji"}
+	out := Fragment(&model.Config{Hosts: []*model.Host{h}}, "t")
+	if !strings.Contains(out, "Host hangzhoubeifenji\n") {
+		t.Errorf("block should be keyed on the ASCII name:\n%s", out)
+	}
+	if strings.Contains(out, "Host 杭州备份机") {
+		t.Errorf("non-ASCII name must not appear in a Host line:\n%s", out)
+	}
+}

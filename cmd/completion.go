@@ -12,7 +12,7 @@ import (
 //
 // Cobra's script feeds candidates to _describe, and zsh then keeps only those
 // that start with what was typed. That silently drops the matches gssh exists
-// for -- pinyin (myjx -> 美亚镜像) and IP fragments (10.11 -> 13) -- because
+// for -- pinyin (hzbfj -> 杭州备份机) and IP fragments (0.0.0 -> 42) -- because
 // the host name does not start with the input. compadd -U hands the decision to
 // gssh, which already returns only the best tier of matches.
 //
@@ -67,7 +67,7 @@ var completionCmd = &cobra.Command{
 
   source <(gssh completion zsh)
 
-Then "gssh v<TAB>" completes host names, and pinyin works too: "gssh myjx<TAB>".`,
+Then "gssh v<TAB>" completes host names, and pinyin works too: "gssh hzbfj<TAB>".`,
 	ValidArgs: []string{"zsh", "bash", "fish"},
 	Args:      cobra.MatchAll(cobra.MaximumNArgs(1), cobra.OnlyValidArgs),
 	RunE: func(cmd *cobra.Command, args []string) error {

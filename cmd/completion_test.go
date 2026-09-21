@@ -12,18 +12,18 @@ func completionFixture(t *testing.T) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "hosts.yaml")
 	body := `hosts:
-  - name: vast.ai.5060
-    host: 70.0.0.1
-  - name: NvBoard
-    host: 10.207.16.33
-  - name: Tencent
-    host: 10.10.251.118
-  - name: tencent
-    host: 10.10.251.119
-  - name: 美亚镜像
-    host: 10.113.2.104
-  - name: "13"
-    host: 10.112.32.13
+  - name: web-01
+    host: 0.0.0.1
+  - name: tower
+    host: 0.0.0.2
+  - name: Staging
+    host: 0.0.0.3
+  - name: staging
+    host: 0.0.0.4
+  - name: 杭州备份机
+    host: 0.0.0.57
+  - name: "42"
+    host: 0.0.0.6
 `
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
@@ -48,14 +48,14 @@ func TestCompletionTiers(t *testing.T) {
 		want  []string
 		why   string
 	}{
-		{"v", []string{"vast.ai.5060"}, "prefix beats NvBoard, which only contains a v"},
-		{"Tenc", []string{"Tencent"}, "case-sensitive match first, or compadd -U erases the input"},
-		{"tenc", []string{"tencent"}, "same, other case"},
-		{"TENC", []string{"Tencent", "tencent"}, "no exact-case match: fall back to ignoring case"},
-		{"myjx", []string{"美亚镜像"}, "pinyin initials"},
-		{"meiya", []string{"美亚镜像"}, "pinyin prefix"},
-		{"10.113", []string{"美亚镜像"}, "IP fragment, last resort"},
-		{"1", []string{"13"}, "name prefix wins over the many IPs containing 1"},
+		{"we", []string{"web-01"}, "prefix beats tower, which only contains we"},
+		{"Stag", []string{"Staging"}, "case-sensitive match first, or compadd -U erases the input"},
+		{"stag", []string{"staging"}, "same, other case"},
+		{"STAG", []string{"Staging", "staging"}, "no exact-case match: fall back to ignoring case"},
+		{"hzbfj", []string{"杭州备份机"}, "pinyin initials"},
+		{"hangzhou", []string{"杭州备份机"}, "pinyin prefix"},
+		{"0.0.0.57", []string{"杭州备份机"}, "IP fragment, last resort"},
+		{"4", []string{"42"}, "name prefix wins over IPs that contain a 4"},
 	}
 	for _, tt := range tests {
 		if got := complete(t, tt.typed); !slices.Equal(got, tt.want) {

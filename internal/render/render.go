@@ -65,10 +65,21 @@ func Fragment(c *model.Config, sourcePath string) string {
 }
 
 func writeHost(b *strings.Builder, h *model.Host, defaults model.Options) {
+	if !model.SSHSafe(h.Name) {
+		// ssh rejects this name, so the block is keyed on an ASCII one.
+		fmt.Fprintf(b, "# %s  (ssh %s)\n", h.Name, h.Target())
+	}
 	if h.Note != "" {
 		fmt.Fprintf(b, "# %s\n", h.Note)
 	}
-	names := append([]string{h.Name}, h.Alias...)
+	var names []string
+	seen := map[string]bool{}
+	for _, n := range append([]string{h.Target(), h.Name}, h.Alias...) {
+		if model.SSHSafe(n) && !seen[n] {
+			seen[n] = true
+			names = append(names, n)
+		}
+	}
 	fmt.Fprintf(b, "Host %s\n", strings.Join(names, " "))
 	kv(b, "HostName", h.Host)
 
