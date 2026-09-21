@@ -74,7 +74,7 @@ gssh sync                # 生成片段并接上 Include
 ## 用法
 
 ```sh
-gssh                     # 选择器（M2）
+gssh                     # 交互式选择器
 gssh shanghai            # 连接
 gssh shanghai uptime     # 执行一条命令
 gssh shanghai -- -L 8080:localhost:8080   # -- 之后的参数原样交给 ssh
@@ -83,6 +83,18 @@ gssh add                 # 交互式新增主机
 gssh add sh --host 10.0.1.13 --user deploy --note "上海机房"   # 也可用参数
 gssh edit                # 用 $EDITOR 打开，保存后自动校验并 sync
 gssh completion zsh      # 补全脚本，备注会一并显示
+```
+
+### 选择器
+
+不带参数敲 `gssh` 就打开。输入即过滤（支持拼音）；列表默认按最近使用排序——
+三十台机器里你真正常连的其实就五台。
+
+```
+> bo
+› board1  deploy@10.0.1.13  [lab]  上海机房 A100
+  board2  deploy@10.0.1.14  [lab]
+  1/2  ↑↓ 移动  ⏎ 连接  ^e 编辑  esc 退出
 ```
 
 ## 配置
@@ -118,6 +130,6 @@ groups:
 - **M1 — 已完成。** YAML 模型、渲染器、`import`、`sync`、`ls`、`doctor`、带拼音
   匹配的补全。已在一份真实的 29 台主机配置上验证：`ssh -G` 判定迁移前后全部 29
   台语义完全一致。
-- **M2** — Bubble Tea 选择器。
+- **M2 — 已完成。** 交互式选择器，支持拼音搜索和最近使用排序。
 - **M3 — 已完成。** `add` / `edit`。
 - **M4 — 已完成。** GoReleaser + 一行安装脚本。

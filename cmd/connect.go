@@ -8,6 +8,9 @@ import (
 	"syscall"
 
 	"github.com/clveryang/gssh/internal/config"
+	"github.com/clveryang/gssh/internal/model"
+	"github.com/clveryang/gssh/internal/mru"
+	"github.com/clveryang/gssh/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -37,12 +40,18 @@ func runConnect(cmd *cobra.Command, args []string) error {
 		rest = args[d:]
 	}
 
-	sshArgs := append([]string{"ssh", h.Name}, rest...)
+	return connect(h, rest)
+}
+
+// connect execs ssh, replacing this process. It never returns on success.
+func connect(h *model.Host, extra []string) error {
 	bin, err := exec.LookPath("ssh")
 	if err != nil {
 		return fmt.Errorf("ssh not found in PATH: %w", err)
 	}
-	return syscall.Exec(bin, sshArgs, os.Environ())
+	// Recorded before the exec, because after it there is no "after".
+	mru.Touch(h.Name)
+	return syscall.Exec(bin, append([]string{"ssh", h.Name}, extra...), os.Environ())
 }
 
 // completeHosts powers shell completion of host names. It also matches on
@@ -81,9 +90,31 @@ func matches(haystacks []string, want string) bool {
 	return false
 }
 
-// runPicker is the no-argument entry point. The interactive picker lands in M2;
-// until then, list the hosts so the command is still useful.
+// runPicker is the no-argument entry point: show the interactive list.
 func runPicker(cmd *cobra.Command) error {
-	fmt.Fprintln(os.Stderr, "interactive picker not built yet (M2) -- showing list instead:")
-	return lsCmd.RunE(cmd, nil)
+	c, err := config.Load()
+	if err != nil {
+		return err
+	}
+	hosts := c.AllHosts()
+	if len(hosts) == 0 {
+		return fmt.Errorf("no hosts in %s -- run `gssh import` or `gssh add`", config.Path())
+	}
+	// Without a terminal there is nothing to drive the picker with; a plain
+	// list keeps `gssh | grep ...` working.
+	if !isTTY() {
+		return lsCmd.RunE(cmd, nil)
+	}
+
+	res, err := ui.Run(hosts)
+	if err != nil {
+		return err
+	}
+	switch res.Action {
+	case ui.ActionConnect:
+		return connect(res.Host, nil)
+	case ui.ActionEdit:
+		return editCmd.RunE(cmd, nil)
+	}
+	return nil // quit without choosing
 }

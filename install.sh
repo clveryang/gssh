@@ -4,8 +4,9 @@
 #   curl -fsSL https://raw.githubusercontent.com/clveryang/gssh/main/install.sh | sh
 #
 # Downloads a prebuilt binary from GitHub Releases into ~/.local/bin (no sudo).
-# Override with GSSH_INSTALL_DIR=/usr/local/bin, GSSH_VERSION=v0.1.0,
-# or GSSH_BASE_URL=<mirror> if GitHub is slow where you are.
+# Override with GSSH_INSTALL_DIR=/usr/local/bin or GSSH_VERSION=v0.2.0.
+# GSSH_BASE_URL=<mirror> moves the download only; checksums still come from
+# GitHub, so a malicious mirror cannot validate its own payload.
 set -eu
 
 REPO=clveryang/gssh
@@ -50,9 +51,12 @@ fi
 
 # --- download -----------------------------------------------------------
 tarball="${BIN}_${os}_${arch}.tar.gz"
-# GSSH_BASE_URL points at a mirror (or a local dir served over HTTP, which is
-# how the installer is tested).
-base=${GSSH_BASE_URL:-"https://github.com/$REPO/releases/download/$version"}
+upstream="https://github.com/$REPO/releases/download/$version"
+
+# GSSH_BASE_URL only moves the *bulk download* to a mirror. Checksums are always
+# fetched from GitHub, so a mirror that serves a tampered binary is caught by the
+# upstream checksum rather than by its own.
+base=${GSSH_BASE_URL:-$upstream}
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT INT TERM
@@ -60,19 +64,26 @@ trap 'rm -rf "$tmp"' EXIT INT TERM
 info "gssh $version ($os/$arch)"
 fetch_to "$base/$tarball" "$tmp/$tarball" || die "download failed: $base/$tarball"
 
-# Verify against the published checksums when we have a tool for it.
-if fetch_to "$base/checksums.txt" "$tmp/checksums.txt" 2>/dev/null; then
+# Verification is mandatory. Skipping it silently -- because the file was
+# missing or no sha tool was present -- would defeat the point of having it.
+if [ "${GSSH_SKIP_CHECKSUM:-0}" = "1" ]; then
+  info "WARNING: checksum verification disabled by GSSH_SKIP_CHECKSUM"
+else
+  fetch_to "$upstream/checksums.txt" "$tmp/checksums.txt" \
+    || die "could not fetch checksums from $upstream (set GSSH_SKIP_CHECKSUM=1 to bypass, at your own risk)"
+
   if command -v sha256sum >/dev/null 2>&1; then
     sum=$(sha256sum "$tmp/$tarball" | cut -d' ' -f1)
   elif command -v shasum >/dev/null 2>&1; then
     sum=$(shasum -a 256 "$tmp/$tarball" | cut -d' ' -f1)
+  elif command -v openssl >/dev/null 2>&1; then
+    sum=$(openssl dgst -sha256 "$tmp/$tarball" | awk '{print $NF}')
   else
-    sum=
+    die "no sha256 tool found (need sha256sum, shasum or openssl)"
   fi
-  if [ -n "$sum" ]; then
-    grep -q "$sum" "$tmp/checksums.txt" || die "checksum mismatch -- refusing to install"
-    info "checksum ok"
-  fi
+
+  grep -q "$sum" "$tmp/checksums.txt" || die "checksum mismatch -- refusing to install"
+  info "checksum ok"
 fi
 
 tar -xzf "$tmp/$tarball" -C "$tmp" || die "extract failed"

@@ -77,7 +77,7 @@ until you run `sync`.
 ## Usage
 
 ```sh
-gssh                     # picker (M2)
+gssh                     # interactive picker
 gssh shanghai            # connect
 gssh shanghai uptime     # run a command
 gssh shanghai -- -L 8080:localhost:8080   # pass flags through to ssh
@@ -85,6 +85,18 @@ gssh ls -t prod          # list, filtered by tag
 gssh add                 # add a host interactively
 gssh edit                # open in $EDITOR, validated and synced on save
 gssh completion zsh      # completion script, with notes shown inline
+```
+
+### The picker
+
+`gssh` with no arguments opens it. Type to filter (pinyin included); the list is
+ordered most-recently-used first, because on thirty hosts you really use five.
+
+```
+> bo
+› board1  deploy@10.0.1.13  [lab]  shanghai rack A100
+  board2  deploy@10.0.1.14  [lab]
+  1/2  ↑↓ move  ⏎ connect  ^e edit  esc quit
 ```
 
 ## Config
@@ -117,6 +129,6 @@ leaves unset; port-forward lists are concatenated rather than replaced.
 - **M1 — done.** YAML model, renderer, `import`, `sync`, `ls`, `doctor`,
   completion with pinyin matching. Verified against a real 29-host config:
   `ssh -G` reports all 29 semantically identical before and after.
-- **M2** — Bubble Tea picker.
+- **M2 — done.** Interactive picker with pinyin search and most-recently-used ordering.
 - **M3 — done.** `add` / `edit`, both comment-preserving.
 - **M4 — done.** GoReleaser + one-line installer.
