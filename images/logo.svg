@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" width="760" height="300" role="img" aria-label="gssh — a searchable picker over your ssh hosts">
+  <defs>
+    <style>
+      .m { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace; }
+      .t  { font-size: 17px; }
+      .sm { font-size: 14px; }
+    </style>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#161b22"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+  </defs>
+
+  <!-- terminal window -->
+  <rect x="16" y="16" width="728" height="268" rx="14" fill="url(#bg)" stroke="#30363d" stroke-width="1.5"/>
+  <line x1="16" y1="56" x2="744" y2="56" stroke="#30363d" stroke-width="1.5"/>
+
+  <!-- traffic lights -->
+  <circle cx="44" cy="36" r="6" fill="#ff5f56"/>
+  <circle cx="66" cy="36" r="6" fill="#ffbd2e"/>
+  <circle cx="88" cy="36" r="6" fill="#27c93f"/>
+  <text class="m sm" x="380" y="41" fill="#6e7681" text-anchor="middle">gssh</text>
+
+  <!-- prompt line -->
+  <text class="m t" x="44" y="92" fill="#58a6ff">&#62;</text>
+  <text class="m t" x="68" y="92" fill="#6e7681">type to filter &#8212; pinyin works: hzbfj</text>
+
+  <!-- selected row -->
+  <rect x="32" y="108" width="696" height="34" rx="7" fill="#1f3a5f"/>
+  <text class="m t" x="44"  y="131" fill="#58a6ff">&#8250;</text>
+  <text class="m t" x="68"  y="131" fill="#ffffff">杭州备份机</text>
+  <text class="m t" x="250" y="131" fill="#c9d1d9">10.0.2.104</text>
+  <text class="m t" x="448" y="131" fill="#c29fff">[prod]</text>
+  <text class="m t" x="548" y="131" fill="#7ee787">每日快照</text>
+
+  <!-- other rows -->
+  <text class="m t" x="68"  y="171" fill="#c9d1d9">board1</text>
+  <text class="m t" x="250" y="171" fill="#8b949e">deploy@10.0.1.13</text>
+  <text class="m t" x="448" y="171" fill="#a371f7">[lab]</text>
+  <text class="m t" x="548" y="171" fill="#57ab5a">上海机房 A100</text>
+
+  <text class="m t" x="68"  y="211" fill="#c9d1d9">zgocloud</text>
+  <text class="m t" x="250" y="211" fill="#8b949e">root@64.0.0.1</text>
+  <text class="m t" x="548" y="211" fill="#57ab5a">跳板机</text>
+
+  <!-- footer -->
+  <line x1="32" y1="232" x2="728" y2="232" stroke="#21262d" stroke-width="1"/>
+  <text class="m sm" x="44" y="258" fill="#6e7681">&#8593;&#8595; move</text>
+  <text class="m sm" x="160" y="258" fill="#6e7681">&#9166; connect</text>
+  <text class="m sm" x="290" y="258" fill="#6e7681">^e edit</text>
+  <text class="m sm" x="400" y="258" fill="#6e7681">esc quit</text>
+  <text class="m sm" x="728" y="258" fill="#58a6ff" text-anchor="end">1/29</text>
+</svg>
