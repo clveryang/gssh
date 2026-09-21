@@ -1,0 +1,29 @@
+version: 2
+project_name: gssh
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - env: [CGO_ENABLED=0]
+    goos: [darwin, linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X github.com/clveryang/gssh/cmd.Version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    # install.sh depends on this exact name shape; keep them in sync.
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude: ['^docs:', '^test:', '^chore:']
+
+release:
+  draft: false

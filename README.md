@@ -35,11 +35,33 @@ signal handling behave exactly as they always did.
 Because the result is a plain `ssh_config`, every other tool picks it up for
 free — including VS Code Remote-SSH.
 
+## Install
+
+One line, no Go toolchain needed — works on your laptop and on the servers you
+ssh into:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/clveryang/gssh/main/install.sh | sh
+```
+
+Installs into `~/.local/bin` (no sudo). Override with `GSSH_INSTALL_DIR=/usr/local/bin`
+or pin with `GSSH_VERSION=v0.1.0`. Prebuilt for darwin/linux on amd64/arm64, and
+the download is checksum-verified against the published `checksums.txt`.
+
+<details>
+<summary>Other ways</summary>
+
+```sh
+go install github.com/clveryang/gssh@latest   # if you have Go
+git clone https://github.com/clveryang/gssh && cd gssh && make install
+```
+
+Or grab a binary straight from the [releases page](https://github.com/clveryang/gssh/releases).
+</details>
+
 ## Getting started
 
 ```sh
-go build -o gssh .
-
 gssh import              # preview the conversion of your existing ~/.ssh/config
 gssh import --write      # save it (backs up ssh_config first)
 gssh doctor              # duplicates, typos, missing keys, unmemorable names
