@@ -13,19 +13,22 @@ import (
 )
 
 var (
-	importWrite bool
-	importFrom  string
+	importYes         bool
+	importDryRun      bool
+	importFrom        string
+	importWriteCompat bool
 )
 
 var importCmd = &cobra.Command{
 	Use:   "import",
-	Short: "Import hosts from an existing ssh_config into the gssh YAML file",
-	Long: `Reads an existing ssh_config and converts its Host blocks into the gssh
-YAML format.
+	Short: "Import hosts from your existing ~/.ssh/config",
+	Long: `Converts the Host blocks in an existing ssh_config into the gssh YAML file,
+then syncs.
 
-Nothing is written unless --write is given. Include directives are reported but
-not followed: those files belong to other tools. Your ssh_config is never
-modified by this command -- run 'gssh sync' when you are happy with the result.`,
+It shows what it found and asks before writing. Include directives are reported
+but not followed: those files belong to other tools. Your ssh_config is backed
+up before anything is written, and keeps all of its original content -- gssh
+only adds one Include line.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		src := importFrom
 		if src == "" {
@@ -36,58 +39,115 @@ modified by this command -- run 'gssh sync' when you are happy with the result.`
 			return err
 		}
 
-		fmt.Printf("read %s\n", src)
-		fmt.Printf("  %d host(s)\n", len(res.Hosts))
+		out := cmd.OutOrStdout()
+		fmt.Fprintf(out, "read %s\n", src)
+		fmt.Fprintf(out, "  %d host(s)\n", len(res.Hosts))
 		for _, w := range res.Wildcards {
-			fmt.Printf("  skipped wildcard pattern: Host %s\n", w)
+			fmt.Fprintf(out, "  skipped wildcard: Host %s\n", w)
 		}
 		for _, inc := range res.Includes {
-			fmt.Printf("  left alone (owned by another tool): Include %s\n", inc)
+			fmt.Fprintf(out, "  left alone (another tool owns it): Include %s\n", inc)
 		}
 		if len(res.Hosts) == 0 {
 			return fmt.Errorf("nothing to import")
 		}
 
+		cfg := &model.Config{Hosts: res.Hosts}
 		dst := config.Path()
-		if _, err := os.Stat(dst); err == nil && importWrite {
-			return fmt.Errorf("%s already exists -- move it aside first, import will not merge", dst)
-		}
 
-		out := &model.Config{Hosts: res.Hosts}
-		if !importWrite {
-			fmt.Printf("\n--- would write %s ---\n\n", dst)
-			data, err := yamlPreview(out)
+		if importDryRun {
+			fmt.Fprintf(out, "\n--- %s would contain ---\n\n", dst)
+			data, err := yamlPreview(cfg)
 			if err != nil {
 				return err
 			}
-			fmt.Print(data)
-			fmt.Printf("\nnothing written. re-run with --write to save.\n")
+			fmt.Fprint(out, data)
 			return nil
 		}
 
-		// The source file is the only record of these machines; keep a copy.
+		fmt.Fprintln(out)
+		printHostSummary(out, res.Hosts)
+
+		if _, err := os.Stat(dst); err == nil {
+			return fmt.Errorf("%s already exists -- import will not merge; move it aside or use `gssh edit`", dst)
+		}
+
+		if !importYes {
+			if !isTTY() {
+				return fmt.Errorf("refusing to write without confirmation; pass --yes")
+			}
+			if !confirm(fmt.Sprintf("\nimport %d hosts into %s?", len(res.Hosts), dst)) {
+				fmt.Fprintln(out, "cancelled; nothing written")
+				return nil
+			}
+		}
+
+		// The source is the only record of how to reach these machines.
 		if src == render.SSHConfigPath() {
 			backup := fmt.Sprintf("%s.bak.%s", src, time.Now().Format("20060102-150405"))
 			if data, err := os.ReadFile(src); err == nil {
 				if err := os.WriteFile(backup, data, 0o600); err != nil {
 					return fmt.Errorf("backup failed, aborting: %w", err)
 				}
-				fmt.Printf("backed up %s -> %s\n", src, backup)
+				fmt.Fprintf(out, "backed up %s -> %s\n", src, backup)
 			}
 		}
 
-		if err := config.Save(out); err != nil {
+		if err := config.Save(cfg); err != nil {
 			return err
 		}
-		fmt.Printf("wrote %d hosts to %s\n", len(res.Hosts), dst)
-		fmt.Printf("\nnext: `gssh edit` to review it (it syncs for you), or `gssh sync` now.\n")
-		fmt.Printf("your existing ssh_config is untouched until you sync.\n")
+		fmt.Fprintf(out, "wrote %d hosts to %s\n", len(res.Hosts), dst)
+
+		loaded, err := config.Load()
+		if err != nil {
+			return err
+		}
+		// verbose: runSync reports the fragment it wrote and any lint issues,
+		// and those belong at the end rather than before the sync line.
+		if err := runSync(out, loaded, true); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "\ndone. try `gssh` to pick a host, or `gssh write` to edit them.\n")
 		return nil
 	},
 }
 
+// printHostSummary lists what is about to be imported, briefly. Dumping 29
+// hosts of YAML at someone before a prompt is not a preview, it is noise.
+func printHostSummary(out interface{ Write([]byte) (int, error) }, hosts []*model.Host) {
+	const show = 8
+	for i, h := range hosts {
+		if i == show {
+			fmt.Fprintf(out, "  ... and %d more\n", len(hosts)-show)
+			break
+		}
+		addr := h.Host
+		if h.User != "" {
+			addr = h.User + "@" + addr
+		}
+		if h.Port != 0 {
+			addr = fmt.Sprintf("%s:%d", addr, h.Port)
+		}
+		fmt.Fprintf(out, "  %-22s %s\n", truncate(h.Name, 22), truncate(addr, 44))
+	}
+	fmt.Fprintf(out, "\n(full YAML: gssh import --dry-run)\n")
+}
+
+func truncate(s string, n int) string {
+	if len([]rune(s)) <= n {
+		return s
+	}
+	return string([]rune(s)[:n-1]) + "…"
+}
+
 func init() {
-	importCmd.Flags().BoolVar(&importWrite, "write", false, "actually write the YAML file (default: preview only)")
-	importCmd.Flags().StringVar(&importFrom, "from", "", "source ssh_config (default: ~/.ssh/config)")
+	f := importCmd.Flags()
+	f.BoolVarP(&importYes, "yes", "y", false, "do not ask for confirmation")
+	f.BoolVar(&importDryRun, "dry-run", false, "print the resulting YAML and exit")
+	f.StringVar(&importFrom, "from", "", "source ssh_config (default: ~/.ssh/config)")
+	// --write used to be required. Keep it working so anyone following the old
+	// instructions is not met with an error.
+	f.BoolVar(&importWriteCompat, "write", false, "")
+	f.MarkDeprecated("write", "writing is now the default; use --dry-run to preview")
 	root.AddCommand(importCmd)
 }

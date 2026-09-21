@@ -18,8 +18,9 @@ import (
 var editNoSync bool
 
 var editCmd = &cobra.Command{
-	Use:   "edit",
-	Short: "Open the YAML host file in $EDITOR, then validate and sync",
+	Use:     "edit",
+	Aliases: []string{"write"},
+	Short:   "Edit the YAML host file in $EDITOR, then validate and sync (alias: write)",
 	Long: `Opens the host file in $VISUAL, $EDITOR, or vi.
 
 The file is edited through a temporary copy: it is only written back once it
@@ -125,21 +126,51 @@ func confirm(prompt string) bool {
 	return false
 }
 
-const templateYAML = `# gssh hosts -- edit this file, then run: gssh sync
+const templateYAML = `# gssh hosts. Edit this file and save -- gssh checks it and applies it for you.
 #
-# defaults fill in any field a host leaves unset.
+# The smallest useful host is a name and an address:
+#
+#   hosts:
+#     - name: shanghai
+#       host: 10.0.1.13
+#
+# then connect with:  gssh shanghai
+#
+# ---------------------------------------------------------------------------
+
+# Filled in for any host that does not set these itself.
 defaults:
   identity_file: ~/.ssh/id_rsa
   server_alive_interval: 30
 
-groups:
-  - name: example
-    tags: [demo]
-    hosts:
-      - name: shanghai
-        host: 10.0.1.13
-        user: deploy
-        note: what this machine is for
+hosts:
+  - name: example              # what you type after gssh
+    host: 10.0.1.13            # IP or hostname -- the only required field
+    user: deploy               # login user
+    # port: 2222               # only if it is not 22
+    note: what this box is for # shown in the picker and in tab-completion
+    tags: [prod]               # filter with: gssh list -t prod
+    alias: [ex]                # "gssh ex" works too
+
+# Groups keep a long list readable. A group's tags apply to every host in it.
+# groups:
+#   - name: 板卡
+#     tags: [lab]
+#     hosts:
+#       - name: 杭州备份机     # Chinese names are fine -- type hzbfj to find it
+#         host: 10.0.2.104
+#         note: 每日快照
+#
+#       - name: behind-jump
+#         host: 10.0.9.9
+#         proxy_jump: example  # reach it through another host
+#
+#       - name: tunnel
+#         host: 10.0.8.8
+#         local_forward:       # same as ssh -L, applied every time
+#           - 8080 localhost:8080
+#         raw:                 # any ssh_config keyword gssh has no field for
+#           Compression: "yes"
 `
 
 func writeTemplate(path string) error {

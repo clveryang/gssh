@@ -30,7 +30,7 @@ func newTestPicker(t *testing.T, recent mru.List) *pickerModel {
 	t.Helper()
 	ti := textinput.New()
 	ti.Focus()
-	m := &pickerModel{all: hostsFixture(), input: ti, height: 20, width: 80, recent: recent}
+	m := &pickerModel{all: hostsFixture(), input: ti, height: 20, width: 80, recent: recent, st: newStyles()}
 	m.filter()
 	return m
 }

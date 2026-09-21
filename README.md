@@ -74,16 +74,38 @@ Prebuilt for darwin and linux on amd64 and arm64. Or take a binary from the
 
 ## Getting started
 
+Just run it:
+
 ```sh
-gssh import              # preview the conversion of your existing ~/.ssh/config
-gssh import --write      # save it (backs up ssh_config first)
-gssh doctor              # duplicates, typos, missing keys, unmemorable names
-gssh sync                # generate the fragment and wire up the Include
+gssh
 ```
 
-`import` writes nothing without `--write`, does not follow `Include` directives
-(those files belong to other tools), and leaves your `ssh_config` untouched
-until you run `sync`.
+With nothing configured yet, it notices the hosts already in your `~/.ssh/config`
+and offers to take them over. Say yes and you are done — it backs up your
+`ssh_config`, writes the YAML and syncs, in one step.
+
+Starting from scratch instead? `gssh write` opens a commented template.
+
+```sh
+gssh                     # first run: offers to import; after that, the picker
+gssh write               # edit the YAML (validated and applied on save)
+gssh list                # see everything you have
+gssh doctor              # duplicates, typos, missing keys, unmemorable names
+```
+
+<details>
+<summary>Doing the import explicitly</summary>
+
+```sh
+gssh import              # shows what it found, asks, then writes and syncs
+gssh import --dry-run    # print the resulting YAML and stop
+gssh import --yes        # no prompt, for scripts
+```
+
+It does not follow `Include` directives (those files belong to other tools) and
+your `ssh_config` keeps all of its original content — gssh only adds one
+`Include` line.
+</details>
 
 ***
 
@@ -112,9 +134,10 @@ gssh shanghai            # connect
 gssh shanghai uptime     # run a command
 gssh shanghai -- -L 8080:localhost:8080   # flags after -- go straight to ssh
 
-gssh ls -t prod          # list, filtered by tag
+gssh list                # list everything (gssh ls also works)
+gssh list -t prod        # filtered by tag
 gssh add                 # add a host interactively
-gssh edit                # open in $EDITOR; validated and synced on save
+gssh write               # open in $EDITOR; validated and synced on save
 gssh doctor              # find problems in the host file
 gssh completion zsh      # completion script, with notes shown inline
 ```

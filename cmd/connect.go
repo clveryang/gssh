@@ -10,6 +10,8 @@ import (
 	"github.com/clveryang/gssh/internal/config"
 	"github.com/clveryang/gssh/internal/model"
 	"github.com/clveryang/gssh/internal/mru"
+	"github.com/clveryang/gssh/internal/render"
+	"github.com/clveryang/gssh/internal/sshconf"
 	"github.com/clveryang/gssh/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -90,6 +92,26 @@ func matches(haystacks []string, want string) bool {
 	return false
 }
 
+// firstRun handles `gssh` with nothing configured yet. Rather than printing an
+// error and a list of commands to go read about, it offers to do the obvious
+// thing: import the hosts the user already has.
+func firstRun(cmd *cobra.Command) error {
+	out := cmd.OutOrStdout()
+	sshCfg := render.SSHConfigPath()
+
+	if res, err := sshconf.ParseFile(sshCfg); err == nil && len(res.Hosts) > 0 && isTTY() {
+		fmt.Fprintf(out, "No hosts configured yet, but %s already has %d.\n", sshCfg, len(res.Hosts))
+		if confirm("Import them now?") {
+			importYes = true // they just said yes; do not ask twice
+			return importCmd.RunE(cmd, nil)
+		}
+		fmt.Fprintf(out, "\nok. `gssh import` when you want to, or `gssh write` to add them by hand.\n")
+		return nil
+	}
+
+	return fmt.Errorf("no hosts yet in %s\n  `gssh write`  to add some by hand\n  `gssh import` to take them from ~/.ssh/config", config.Path())
+}
+
 // runPicker is the no-argument entry point: show the interactive list.
 func runPicker(cmd *cobra.Command) error {
 	c, err := config.Load()
@@ -98,7 +120,7 @@ func runPicker(cmd *cobra.Command) error {
 	}
 	hosts := c.AllHosts()
 	if len(hosts) == 0 {
-		return fmt.Errorf("no hosts in %s -- run `gssh import` or `gssh add`", config.Path())
+		return firstRun(cmd)
 	}
 	// Without a terminal there is nothing to drive the picker with; a plain
 	// list keeps `gssh | grep ...` working.

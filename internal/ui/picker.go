@@ -13,18 +13,34 @@ import (
 	"github.com/clveryang/gssh/internal/mru"
 )
 
-// Colours are adaptive so the picker stays readable on light and dark terminals.
-var (
-	styleSelected = lipgloss.NewStyle().Bold(true).
-			Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#ffffff"}).
-			Background(lipgloss.AdaptiveColor{Light: "#d7e3ff", Dark: "#2d4263"})
-	styleName  = lipgloss.NewStyle().Bold(true)
-	styleAddr  = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#555555", Dark: "#9a9a9a"})
-	styleTag   = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#8250df", Dark: "#c29fff"})
-	styleNote  = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#3a7d44", Dark: "#87d096"})
-	styleHelp  = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#777777", Dark: "#7a7a7a"})
-	styleEmpty = lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "#b3261e", Dark: "#f2b8b5"})
-)
+// styles is built when the picker starts rather than at package level, so that
+// constructing a lipgloss.Style is not work every command pays for.
+//
+// Note this does not avoid the terminal background-colour query: importing
+// bubbletea triggers that during package init, before main runs, so every gssh
+// command pays it. On a terminal that answers OSC 11 it costs microseconds; on
+// one that ignores it, termenv waits out its 5s timeout. Only TERM=dumb skips
+// it. Avoiding that entirely would mean shipping the picker as a second binary.
+type styles struct {
+	selected, name, addr, tag, note, help, empty lipgloss.Style
+}
+
+func newStyles() styles {
+	adaptive := func(light, dark string) lipgloss.AdaptiveColor {
+		return lipgloss.AdaptiveColor{Light: light, Dark: dark}
+	}
+	return styles{
+		selected: lipgloss.NewStyle().Bold(true).
+			Foreground(adaptive("#1a1a1a", "#ffffff")).
+			Background(adaptive("#d7e3ff", "#2d4263")),
+		name:  lipgloss.NewStyle().Bold(true),
+		addr:  lipgloss.NewStyle().Foreground(adaptive("#555555", "#9a9a9a")),
+		tag:   lipgloss.NewStyle().Foreground(adaptive("#8250df", "#c29fff")),
+		note:  lipgloss.NewStyle().Foreground(adaptive("#3a7d44", "#87d096")),
+		help:  lipgloss.NewStyle().Foreground(adaptive("#777777", "#7a7a7a")),
+		empty: lipgloss.NewStyle().Foreground(adaptive("#b3261e", "#f2b8b5")),
+	}
+}
 
 // Action is what the user chose to do with the selected host.
 type Action int
@@ -55,6 +71,7 @@ type pickerModel struct {
 	height   int
 	width    int
 	recent   mru.List
+	st       styles
 	result   Result
 	nameWide int
 }
@@ -72,6 +89,7 @@ func Run(hosts []*model.Host) (Result, error) {
 		height: 20,
 		width:  80,
 		recent: mru.Load(),
+		st:     newStyles(),
 	}
 	m.filter()
 
@@ -207,9 +225,9 @@ func (m *pickerModel) View() string {
 	b.WriteString("\n\n")
 
 	if len(m.shown) == 0 {
-		b.WriteString(styleEmpty.Render("  no host matches"))
+		b.WriteString(m.st.empty.Render("  no host matches"))
 		b.WriteString("\n\n")
-		b.WriteString(styleHelp.Render("  esc quit"))
+		b.WriteString(m.st.help.Render("  esc quit"))
 		return b.String()
 	}
 
@@ -230,7 +248,7 @@ func (m *pickerModel) View() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(styleHelp.Render(fmt.Sprintf(
+	b.WriteString(m.st.help.Render(fmt.Sprintf(
 		"  %d/%d  ↑↓ move  ⏎ connect  ^e edit  esc quit",
 		m.cursor+1, len(m.shown))))
 	return b.String()
@@ -250,12 +268,12 @@ func (m *pickerModel) renderRow(it item, selected bool) string {
 	name := h.Name + strings.Repeat(" ", max(0, m.nameWide-lipgloss.Width(h.Name)))
 
 	var parts []string
-	parts = append(parts, styleName.Render(name), styleAddr.Render(addr))
+	parts = append(parts, m.st.name.Render(name), m.st.addr.Render(addr))
 	if len(h.Tags) > 0 {
-		parts = append(parts, styleTag.Render("["+strings.Join(h.Tags, ",")+"]"))
+		parts = append(parts, m.st.tag.Render("["+strings.Join(h.Tags, ",")+"]"))
 	}
 	if h.Note != "" {
-		parts = append(parts, styleNote.Render(h.Note))
+		parts = append(parts, m.st.note.Render(h.Note))
 	}
 	line := "  " + strings.Join(parts, "  ")
 
@@ -272,7 +290,7 @@ func (m *pickerModel) renderRow(it item, selected bool) string {
 		if w > 2 {
 			plain += strings.Repeat(" ", max(0, w-lipgloss.Width(plain)-1))
 		}
-		return styleSelected.Render(plain)
+		return m.st.selected.Render(plain)
 	}
 	return line
 }

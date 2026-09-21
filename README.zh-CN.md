@@ -72,15 +72,36 @@ git clone https://github.com/clveryang/gssh && cd gssh && make install
 
 ## 上手
 
+直接运行：
+
 ```sh
-gssh import              # 预览：现有 ~/.ssh/config 转成 YAML 会是什么样
-gssh import --write      # 确认后写入（会先备份 ssh_config）
-gssh doctor              # 检查重名、拼写、失效密钥、记不住的名字
-gssh sync                # 生成片段并接上 Include
+gssh
 ```
 
-`import` 不加 `--write` 不会写任何东西；它不会跟进 `Include` 指令（那些文件属于
-别的工具）；在你执行 `sync` 之前，你的 `ssh_config` 不会被改动。
+如果还没有任何配置，它会发现你 `~/.ssh/config` 里已有的主机并问要不要接管。
+回一个 y 就完事了 —— 备份 `ssh_config`、写 YAML、sync，一步到位。
+
+想从零开始写？`gssh write` 会打开一个带注释的模板。
+
+```sh
+gssh                     # 首次运行会问要不要导入；之后就是选择器
+gssh write               # 编辑 YAML（保存时自动校验并生效）
+gssh list                # 看看你都填了些什么
+gssh doctor              # 检查重名、拼写、失效密钥、记不住的名字
+```
+
+<details>
+<summary>手动执行导入</summary>
+
+```sh
+gssh import              # 列出找到的内容，询问，然后写入并 sync
+gssh import --dry-run    # 只打印结果 YAML，不写
+gssh import --yes        # 不询问，供脚本使用
+```
+
+它不会跟进 `Include` 指令（那些文件属于别的工具）；你的 `ssh_config` 原有内容
+一行不少 —— gssh 只加一行 `Include`。
+</details>
 
 ***
 
@@ -109,9 +130,10 @@ gssh shanghai            # 连接
 gssh shanghai uptime     # 执行一条命令
 gssh shanghai -- -L 8080:localhost:8080   # -- 之后的参数原样交给 ssh
 
-gssh ls -t prod          # 按标签过滤列表
+gssh list                # 列出全部（gssh ls 亦可）
+gssh list -t prod        # 按标签过滤
 gssh add                 # 交互式新增主机
-gssh edit                # 用 $EDITOR 打开，存盘即校验并 sync
+gssh write               # 用 $EDITOR 打开，存盘即校验并 sync
 gssh doctor              # 检查配置文件里的问题
 gssh completion zsh      # 补全脚本，备注会一并显示
 ```

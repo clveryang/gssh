@@ -16,7 +16,7 @@ var lsTag string
 var lsCmd = &cobra.Command{
 	Use:     "ls",
 	Aliases: []string{"list"},
-	Short:   "List hosts",
+	Short:   "List hosts (alias: list)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		c, err := config.Load()
 		if err != nil {
@@ -36,8 +36,11 @@ var lsCmd = &cobra.Command{
 			if h.Port != 0 {
 				addr = fmt.Sprintf("%s:%d", addr, h.Port)
 			}
+			// One pathological value (a 60-character proxy username, say) would
+			// otherwise stretch every column in the table.
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\n",
-				h.Name, addr, h.Group, strings.Join(h.Tags, ","), h.Note)
+				truncate(h.Name, 24), truncate(addr, 34), h.Group,
+				truncate(strings.Join(h.Tags, ","), 16), truncate(h.Note, 32))
 			n++
 		}
 		if err := w.Flush(); err != nil {
