@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/logo.svg" alt="gssh" width="700">
+<img src="images/logo.png" alt="gssh" width="200">
 
 <h1>gssh</h1>
 
