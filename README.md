@@ -1,5 +1,7 @@
 # gssh
 
+English | [中文](README.zh-CN.md)
+
 Keep your ssh hosts in one YAML file, get a searchable picker over them, and
 still let `ssh`, `scp`, `rsync`, `git` and VS Code Remote-SSH use them.
 
@@ -80,6 +82,8 @@ gssh shanghai            # connect
 gssh shanghai uptime     # run a command
 gssh shanghai -- -L 8080:localhost:8080   # pass flags through to ssh
 gssh ls -t prod          # list, filtered by tag
+gssh add                 # add a host interactively
+gssh edit                # open in $EDITOR, validated and synced on save
 gssh completion zsh      # completion script, with notes shown inline
 ```
 
@@ -114,5 +118,5 @@ leaves unset; port-forward lists are concatenated rather than replaced.
   completion with pinyin matching. Verified against a real 29-host config:
   `ssh -G` reports all 29 semantically identical before and after.
 - **M2** — Bubble Tea picker.
-- **M3** — `add` / `edit`.
-- **M4** — GoReleaser + homebrew tap.
+- **M3 — done.** `add` / `edit`, both comment-preserving.
+- **M4 — done.** GoReleaser + one-line installer.

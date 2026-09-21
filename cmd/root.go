@@ -18,10 +18,11 @@ var root = &cobra.Command{
 fragment, and gives you a searchable picker over them.
 
 With a host name it connects directly. With no arguments it opens the picker.`,
-	Version:      Version,
-	Args:         cobra.ArbitraryArgs,
-	RunE:         runConnect,
-	SilenceUsage: true,
+	Version:       Version,
+	Args:          cobra.ArbitraryArgs,
+	RunE:          runConnect,
+	SilenceUsage:  true,
+	SilenceErrors: true, // Execute prints the error itself
 	// Let cobra complete host names for the bare `gssh <TAB>` form.
 	ValidArgsFunction: completeHosts,
 }

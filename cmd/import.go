@@ -80,8 +80,8 @@ modified by this command -- run 'gssh sync' when you are happy with the result.`
 			return err
 		}
 		fmt.Printf("wrote %d hosts to %s\n", len(res.Hosts), dst)
-		fmt.Printf("\nnext: edit it (gssh edit), then `gssh sync`.\n")
-		fmt.Printf("your existing ssh_config is untouched until you run sync.\n")
+		fmt.Printf("\nnext: `gssh edit` to review it (it syncs for you), or `gssh sync` now.\n")
+		fmt.Printf("your existing ssh_config is untouched until you sync.\n")
 		return nil
 	},
 }
