@@ -133,6 +133,7 @@ gssh                     # interactive picker
 gssh shanghai            # connect
 gssh shanghai uptime     # run a command
 gssh shanghai -- -L 8080:localhost:8080   # flags after -- go straight to ssh
+gssh -- ls               # a host whose name is also a gssh command
 
 gssh list                # list everything (gssh ls also works)
 gssh list -t prod        # filtered by tag
@@ -141,6 +142,10 @@ gssh write               # open in $EDITOR; validated and synced on save
 gssh doctor              # find problems in the host file
 gssh completion zsh      # completion script, with notes shown inline
 ```
+
+A host named like a command (`ls`, `list`, `add`, `write`, `sync`…) is shadowed:
+`gssh ls` lists. Reach it with `gssh -- ls`, the picker, or `ssh ls`. `gssh add`
+and `gssh doctor` point this out when it happens.
 
 ### Tab completion
 

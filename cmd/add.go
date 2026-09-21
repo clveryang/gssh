@@ -72,6 +72,9 @@ in the host file are preserved.`,
 			return err
 		}
 		fmt.Fprintf(cmd.OutOrStdout(), "added %s -> %s\n", h.Name, h.Host)
+		if c := shadowedBy(h.Name); c != "" {
+			fmt.Fprintf(cmd.OutOrStdout(), "warning: %s\n", shadowHint(h.Name, c))
+		}
 
 		if add.noSync {
 			fmt.Fprintln(cmd.OutOrStdout(), "not synced (--no-sync); run `gssh sync` to apply")
@@ -84,7 +87,11 @@ in the host file are preserved.`,
 		if err := runSync(cmd.OutOrStdout(), c, false); err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "ready: gssh %s\n", h.Name)
+		if shadowedBy(h.Name) != "" {
+			fmt.Fprintf(cmd.OutOrStdout(), "ready: gssh -- %s\n", h.Name)
+		} else {
+			fmt.Fprintf(cmd.OutOrStdout(), "ready: gssh %s\n", h.Name)
+		}
 		return nil
 	},
 }

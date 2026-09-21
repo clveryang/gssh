@@ -20,11 +20,16 @@ fragment, and gives you a searchable picker over them.
 With a host name it connects directly. With no arguments it opens the picker.`,
 	Version:       Version,
 	Args:          cobra.ArbitraryArgs,
-	RunE:          runConnect,
 	SilenceUsage:  true,
 	SilenceErrors: true, // Execute prints the error itself
 	// Let cobra complete host names for the bare `gssh <TAB>` form.
 	ValidArgsFunction: completeHosts,
+}
+
+func init() {
+	// Assigned here rather than in the literal: runConnect reaches back to
+	// root (via shadowedBy), and Go rejects that as an initialisation cycle.
+	root.RunE = runConnect
 }
 
 // Execute runs the CLI.

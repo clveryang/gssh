@@ -129,6 +129,7 @@ gssh                     # 交互式选择器
 gssh shanghai            # 连接
 gssh shanghai uptime     # 执行一条命令
 gssh shanghai -- -L 8080:localhost:8080   # -- 之后的参数原样交给 ssh
+gssh -- ls               # 主机名恰好和 gssh 的命令同名时
 
 gssh list                # 列出全部（gssh ls 亦可）
 gssh list -t prod        # 按标签过滤
@@ -137,6 +138,10 @@ gssh write               # 用 $EDITOR 打开，存盘即校验并 sync
 gssh doctor              # 检查配置文件里的问题
 gssh completion zsh      # 补全脚本，备注会一并显示
 ```
+
+如果主机名和命令重名（`ls`、`list`、`add`、`write`、`sync`…），`gssh ls` 执行的
+是命令。要连这台机器用 `gssh -- ls`、选择器，或者直接 `ssh ls`。`gssh add` 和
+`gssh doctor` 遇到这种情况会提醒你。
 
 ### Tab 补全
 

@@ -71,6 +71,14 @@ func lint(c *model.Config) []problem {
 				}
 			}
 		}
+		if c := shadowedBy(h.Name); c != "" {
+			out = append(out, problem{h.Name, shadowHint(h.Name, c)})
+		}
+		for _, a := range h.Alias {
+			if c := shadowedBy(a); c != "" {
+				out = append(out, problem{h.Name, "alias " + a + " has the " + shadowHint(a, c)})
+			}
+		}
 		if h.Note == "" && isOpaque(h.Name) {
 			out = append(out, problem{h.Name, "opaque name with no note -- you will not remember what this is"})
 		}
