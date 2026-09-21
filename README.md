@@ -142,6 +142,18 @@ gssh doctor              # find problems in the host file
 gssh completion zsh      # completion script, with notes shown inline
 ```
 
+### Tab completion
+
+```sh
+echo 'source <(gssh completion zsh)' >> ~/.zshrc && exec zsh
+```
+
+Then `gssh v<TAB>` becomes `gssh vast.ai.5060`, and it understands the same
+things the picker does: `gssh myjx<TAB>` → `gssh 美亚镜像`, and an IP fragment
+completes to the host that owns it. (zsh normally discards candidates that do
+not start with what you typed, which would throw away exactly those matches;
+gssh's script takes over that decision for the host argument.)
+
 ### The picker
 
 `gssh` with no arguments opens it. Type to filter — pinyin included — and the

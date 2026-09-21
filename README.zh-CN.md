@@ -138,6 +138,17 @@ gssh doctor              # 检查配置文件里的问题
 gssh completion zsh      # 补全脚本，备注会一并显示
 ```
 
+### Tab 补全
+
+```sh
+echo 'source <(gssh completion zsh)' >> ~/.zshrc && exec zsh
+```
+
+之后 `gssh v<TAB>` 会变成 `gssh vast.ai.5060`；和选择器一样认拼音：
+`gssh myjx<TAB>` → `gssh 美亚镜像`，输入 IP 片段也能补成对应主机。（zsh 默认会丢掉
+不以你输入内容开头的候选，拼音和 IP 匹配恰好都会被丢掉；gssh 的补全脚本接管了主机
+参数这一位的匹配。）
+
 ### 选择器
 
 不带参数敲 `gssh` 就打开。输入即过滤（支持拼音），列表默认按**最近使用**排序 ——

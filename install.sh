@@ -105,4 +105,14 @@ case ":$PATH:" in
     ;;
 esac
 
-printf '\n  next: %s/%s import\n\n' "$INSTALL_DIR" "$BIN"
+# Tab completion is opt-in: an installer piped into sh should not edit rc files.
+case "${SHELL:-}" in
+  */zsh)
+    if ! grep -qs 'gssh completion' "$HOME/.zshrc"; then
+      printf '\n  tab completion (gssh v<TAB> -> gssh vast.ai...):\n\n'
+      printf "    echo 'source <(gssh completion zsh)' >> ~/.zshrc && exec zsh\n"
+    fi
+    ;;
+esac
+
+printf '\n  next: run `gssh`\n\n'

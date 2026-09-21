@@ -10,6 +10,7 @@ import (
 	"github.com/clveryang/gssh/internal/config"
 	"github.com/clveryang/gssh/internal/model"
 	"github.com/clveryang/gssh/internal/mru"
+	"github.com/clveryang/gssh/internal/pyin"
 	"github.com/clveryang/gssh/internal/render"
 	"github.com/clveryang/gssh/internal/sshconf"
 	"github.com/clveryang/gssh/internal/ui"
@@ -56,8 +57,21 @@ func connect(h *model.Host, extra []string) error {
 	return syscall.Exec(bin, append([]string{"ssh", h.Name}, extra...), os.Environ())
 }
 
-// completeHosts powers shell completion of host names. It also matches on
-// pinyin, so typing `hzbfj<TAB>` can reach 杭州备份机.
+// completeHosts powers shell completion of host names.
+//
+// Matches come in tiers and only the best non-empty tier is returned, because
+// the zsh script hands the result to compadd -U and does no filtering of its
+// own. Without tiers, `gssh v<TAB>` would offer every host containing a "v"
+// instead of completing to the one host whose name starts with it.
+//
+//  1. name or alias starts with the input, case-sensitively
+//  2. the same, ignoring case                  v     -> vast.ai.5060
+//  3. pinyin of the name starts with it        myjx  -> 美亚镜像
+//  4. input appears anywhere (IP, note, tag)   10.11 -> 13, 14, ...
+//
+// Tier 1 exists because compadd -U replaces the typed word with the common
+// prefix of the candidates: "Tenc" matching both Tencent and tencent would
+// share no prefix at all and erase what the user typed.
 func completeHosts(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) > 0 {
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -66,30 +80,60 @@ func completeHosts(cmd *cobra.Command, args []string, toComplete string) ([]stri
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveError
 	}
-	want := strings.ToLower(toComplete)
-	var out []string
+	var tiers [4][]string
 	for _, h := range c.AllHosts() {
-		if want != "" && !matches(h.Search, want) {
+		t := matchTier(h, toComplete)
+		if t < 0 {
 			continue
 		}
-		// "name\tdescription" -- zsh and fish show the description inline,
-		// which is the whole point: the name alone is unreadable.
+		// "name\tdescription": zsh shows the description beside the name,
+		// which is the point -- "13" alone tells you nothing.
 		desc := h.Note
 		if desc == "" {
 			desc = h.Host
 		}
-		out = append(out, h.Name+"\t"+desc)
+		tiers[t] = append(tiers[t], h.Name+"\t"+desc)
 	}
-	return out, cobra.ShellCompDirectiveNoFileComp
-}
-
-func matches(haystacks []string, want string) bool {
-	for _, s := range haystacks {
-		if strings.Contains(s, want) {
-			return true
+	for _, t := range tiers {
+		if len(t) > 0 {
+			return t, cobra.ShellCompDirectiveNoFileComp
 		}
 	}
-	return false
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+// matchTier returns the tier (0-3) described on completeHosts, or -1.
+func matchTier(h *model.Host, typed string) int {
+	if typed == "" {
+		return 0
+	}
+	names := append([]string{h.Name}, h.Alias...)
+	for _, n := range names {
+		if strings.HasPrefix(n, typed) {
+			return 0
+		}
+	}
+	want := strings.ToLower(typed)
+	for _, n := range names {
+		if strings.HasPrefix(strings.ToLower(n), want) {
+			return 1
+		}
+	}
+	keys := pyin.Keys(h.Name)
+	if h.Pinyin != "" {
+		keys = append(keys, strings.ToLower(h.Pinyin))
+	}
+	for _, k := range keys {
+		if strings.HasPrefix(k, want) {
+			return 2
+		}
+	}
+	for _, s := range h.Search {
+		if strings.Contains(s, want) {
+			return 3
+		}
+	}
+	return -1
 }
 
 // firstRun handles `gssh` with nothing configured yet. Rather than printing an
