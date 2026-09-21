@@ -14,14 +14,45 @@ import (
 )
 
 // Path returns the host file location, honouring GSSH_CONFIG.
+//
+// It deliberately does not use os.UserConfigDir: on macOS that is
+// ~/Library/Application Support, a GUI location with a space in the path that
+// nobody wants to type or hand-edit. A CLI's config belongs under ~/.config on
+// every platform, which is also what the documentation says.
 func Path() string {
 	if p := os.Getenv("GSSH_CONFIG"); p != "" {
 		return p
 	}
+	preferred := xdgPath()
+
+	// v0.3.0 and earlier wrote to os.UserConfigDir(). Keep reading a file left
+	// there so an upgrade does not silently lose someone's hosts.
+	if _, err := os.Stat(preferred); os.IsNotExist(err) {
+		if legacy := legacyPath(); legacy != "" && legacy != preferred {
+			if _, err := os.Stat(legacy); err == nil {
+				return legacy
+			}
+		}
+	}
+	return preferred
+}
+
+func xdgPath() string {
+	dir := os.Getenv("XDG_CONFIG_HOME")
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return filepath.Join(".config", "gssh", "hosts.yaml")
+		}
+		dir = filepath.Join(home, ".config")
+	}
+	return filepath.Join(dir, "gssh", "hosts.yaml")
+}
+
+func legacyPath() string {
 	dir, err := os.UserConfigDir()
 	if err != nil {
-		home, _ := os.UserHomeDir()
-		dir = filepath.Join(home, ".config")
+		return ""
 	}
 	return filepath.Join(dir, "gssh", "hosts.yaml")
 }

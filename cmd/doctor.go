@@ -24,11 +24,13 @@ var doctorCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		fmt.Printf("config: %s\n", config.Path())
 		problems := lint(c)
 		if len(problems) == 0 {
 			fmt.Printf("%d hosts, no issues\n", len(c.AllHosts()))
 			return nil
 		}
+		fmt.Println()
 		for _, p := range problems {
 			fmt.Printf("  %-24s %s\n", p.Host, p.Msg)
 		}

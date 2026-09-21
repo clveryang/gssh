@@ -152,6 +152,9 @@ groups:
           Compression: "yes"
 ```
 
+配置文件位于 `~/.config/gssh/hosts.yaml`（遵循 `$XDG_CONFIG_HOME`，`GSSH_CONFIG`
+可覆盖）。`gssh doctor` 会打印它实际用的路径。
+
 分组上的 tags 会被组内主机继承。`defaults` 用来填充主机没有设置的字段；端口转发
 这类列表是追加而不是覆盖。
 

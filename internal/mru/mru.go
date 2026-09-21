@@ -20,9 +20,13 @@ func path() string {
 	if p := os.Getenv("GSSH_MRU"); p != "" {
 		return p
 	}
-	dir, err := os.UserCacheDir()
-	if err != nil {
-		home, _ := os.UserHomeDir()
+	// ~/.cache for the same reason Path uses ~/.config: this is a CLI.
+	dir := os.Getenv("XDG_CACHE_HOME")
+	if dir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return filepath.Join(".cache", "gssh", "recent.json")
+		}
 		dir = filepath.Join(home, ".cache")
 	}
 	return filepath.Join(dir, "gssh", "recent.json")

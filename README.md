@@ -156,6 +156,9 @@ groups:
           Compression: "yes"
 ```
 
+The host file lives at `~/.config/gssh/hosts.yaml` (`$XDG_CONFIG_HOME` is
+honoured; `GSSH_CONFIG` overrides both). `gssh doctor` prints the path it used.
+
 Tags on a group are inherited by its hosts. `defaults` fills in fields a host
 leaves unset; port-forward lists are concatenated rather than replaced.
 
