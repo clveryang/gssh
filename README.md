@@ -105,6 +105,10 @@ Any other `ssh_config` keyword goes under `raw:`, e.g. `raw: {Compression: "yes"
 
 ## How it works
 
+Connecting shows a spinner while it opens a connection in the background, then
+drops you into the session. That connection is kept for a minute, so the next
+`gssh` to the same host is instant. `GSSH_NO_MULTIPLEX=1` turns this off.
+
 `gssh` renders your YAML into `~/.ssh/config.d/gssh.conf` and adds one `Include`
 line to `~/.ssh/config`, so `ssh`, `scp`, `rsync`, `git` and VS Code Remote-SSH
 all see the same hosts. Connecting is a plain `exec ssh`. Your `ssh_config` is

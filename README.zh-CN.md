@@ -105,6 +105,9 @@ groups:                            # 组的 tags 会被组内主机继承
 
 ## 原理
 
+连接时会先显示动画并在后台建好连接，再进入会话。这条连接会保留一分钟，所以紧接着
+再连同一台机器是瞬间完成的。设 `GSSH_NO_MULTIPLEX=1` 可以关掉这个行为。
+
 gssh 把 YAML 渲染成 `~/.ssh/config.d/gssh.conf`，并在 `~/.ssh/config` 里加一行
 `Include`，所以 `ssh`、`scp`、`rsync`、`git`、VS Code Remote-SSH 看到的是同一份主机。
 连接就是直接 `exec ssh`。第一次改动前会备份你的 `ssh_config`，其余内容原样保留。

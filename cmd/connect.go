@@ -44,20 +44,35 @@ func runConnect(cmd *cobra.Command, args []string) error {
 		rest = args[d:]
 	}
 
-	return connect(h, rest)
+	return connect(h, c.Defaults, rest)
 }
 
 // connect execs ssh, replacing this process. It never returns on success.
-func connect(h *model.Host, extra []string) error {
+func connect(h *model.Host, defaults model.Options, extra []string) error {
 	bin, err := exec.LookPath("ssh")
 	if err != nil {
 		return fmt.Errorf("ssh not found in PATH: %w", err)
 	}
-	announce(h)
 	// Recorded before the exec, because after it there is no "after".
 	mru.Touch(h.Name)
+
 	// h.Target, not h.Name: ssh rejects non-ASCII names outright.
-	return syscall.Exec(bin, append([]string{"ssh", h.Target()}, extra...), os.Environ())
+	target := h.Target()
+
+	// Extra ssh arguments (port forwards and the like) belong to the session,
+	// not to a shared master, so they take the plain path.
+	var via []string
+	if len(extra) == 0 && useMultiplexing() {
+		via = dial(h, defaults, target)
+	}
+	if via == nil {
+		announce(h)
+	}
+
+	args := append([]string{"ssh"}, via...)
+	args = append(args, target)
+	args = append(args, extra...)
+	return syscall.Exec(bin, args, os.Environ())
 }
 
 // announce prints what is being connected to before handing over to ssh.
@@ -66,6 +81,10 @@ func connect(h *model.Host, extra []string) error {
 // handover gssh no longer exists, and the pause the user sees is ssh resolving
 // DNS, opening the connection and doing the handshake -- during which ssh
 // prints nothing. A line printed first means the screen is never just blank.
+func useMultiplexing() bool {
+	return os.Getenv("GSSH_NO_MULTIPLEX") == "" && term.IsTerminal(int(os.Stderr.Fd()))
+}
+
 func announce(h *model.Host) {
 	if !term.IsTerminal(int(os.Stderr.Fd())) {
 		return
@@ -206,7 +225,7 @@ func runPicker(cmd *cobra.Command) error {
 	}
 	switch res.Action {
 	case ui.ActionConnect:
-		return connect(res.Host, nil)
+		return connect(res.Host, c.Defaults, nil)
 	case ui.ActionEdit:
 		return editCmd.RunE(cmd, nil)
 	}
