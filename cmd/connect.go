@@ -15,6 +15,7 @@ import (
 	"github.com/clveryang/gssh/internal/sshconf"
 	"github.com/clveryang/gssh/internal/ui"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // runConnect handles `gssh <host> [extra ssh args]`.
@@ -52,10 +53,36 @@ func connect(h *model.Host, extra []string) error {
 	if err != nil {
 		return fmt.Errorf("ssh not found in PATH: %w", err)
 	}
+	announce(h)
 	// Recorded before the exec, because after it there is no "after".
 	mru.Touch(h.Name)
 	// h.Target, not h.Name: ssh rejects non-ASCII names outright.
 	return syscall.Exec(bin, append([]string{"ssh", h.Target()}, extra...), os.Environ())
+}
+
+// announce prints what is being connected to before handing over to ssh.
+//
+// There is no spinner to show here: exec replaces this process, so after the
+// handover gssh no longer exists, and the pause the user sees is ssh resolving
+// DNS, opening the connection and doing the handshake -- during which ssh
+// prints nothing. A line printed first means the screen is never just blank.
+func announce(h *model.Host) {
+	if !term.IsTerminal(int(os.Stderr.Fd())) {
+		return
+	}
+	addr := h.Host
+	if h.User != "" {
+		addr = h.User + "@" + addr
+	}
+	if h.Port != 0 {
+		addr = fmt.Sprintf("%s:%d", addr, h.Port)
+	}
+	label := h.Name
+	if h.Note != "" {
+		label += "  " + h.Note
+	}
+	// Dim, so it reads as gssh's own line rather than ssh output.
+	fmt.Fprintf(os.Stderr, "\x1b[2m→\x1b[0m %s \x1b[2m%s\x1b[0m\n", label, addr)
 }
 
 // completeHosts powers shell completion of host names.
